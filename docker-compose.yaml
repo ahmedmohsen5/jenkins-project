@@ -1,0 +1,76 @@
+services:
+  jenkins-controller:
+    image: jenkins/jenkins:lts-jdk21
+    container_name: jenkins-controller
+    restart: unless-stopped
+    user: root
+    ports:
+      - "8080:8080"
+      - "50000:50000"
+    volumes:
+      - jenkins_home:/var/jenkins_home
+    networks:
+      - jenkins-net
+
+  jenkins-agent:
+    build:
+      context: ./jenkins-agent
+    container_name: jenkins-agent
+    restart: unless-stopped
+    environment:
+      JENKINS_AGENT_SSH_PUBKEY: "${JENKINS_AGENT_SSH_PUBKEY:-}"
+      DOCKER_HOST: "tcp://jenkins-docker:2375"
+    depends_on:
+      - docker
+    networks:
+      - jenkins-net
+
+  devops-helper:
+    build:
+      context: ./devops-helper
+    container_name: devops-helper
+    restart: unless-stopped
+    environment:
+      SECRET_KEY: "${DEVOPS_HELPER_SECRET_KEY:-devops-helper-local-secret}"
+      DATABASE_PATH: /data/devops-helper.db
+      JENKINS_URL: http://jenkins-controller:8080
+    ports:
+      - "5050:5000"
+    volumes:
+      - devops_helper_data:/data
+    depends_on:
+      - jenkins-controller
+    networks:
+      - jenkins-net
+
+  docker:
+    image: docker:27-dind
+    container_name: jenkins-docker
+    restart: unless-stopped
+    privileged: true
+    environment:
+      DOCKER_TLS_CERTDIR: ""
+    volumes:
+      - docker_data:/var/lib/docker
+    networks:
+      - jenkins-net
+  docker-repository:
+    image: registry:2
+    container_name: docker-repository
+    restart: unless-stopped
+    ports:
+      - "8000:5000"
+    volumes:
+      - docker_repository_data:/var/lib/registry
+    networks:
+      - jenkins-net
+
+volumes:
+  jenkins_home:
+  docker_repository_data:
+  docker_data:
+  devops_helper_data:
+
+networks:
+  jenkins-net:
+    driver: bridge

@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ dashboard_name }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="hero">
+        <div class="hero-copy">
+          <p class="eyebrow">Release visibility for small teams</p>
+          <h1>{{ dashboard_name }}</h1>
+          <p class="hero-text">
+            Keep services moving through build, test, release, deploy, and monitor
+            without losing the thread between Jenkins runs and operational follow-up.
+          </p>
+          <div class="hero-actions">
+            <a class="button-link" href="{{ jenkins_url }}" target="_blank" rel="noreferrer">Open Jenkins</a>
+            <a class="button-link button-link-secondary" href="{{ url_for('api_items') }}" target="_blank" rel="noreferrer">View JSON API</a>
+          </div>
+        </div>
+        <div class="hero-panel">
+          <p class="panel-title">Today at a glance</p>
+          <div class="health-ring">
+            <strong>{{ summary.delivery_health }}%</strong>
+            <span>delivery health</span>
+          </div>
+          <p class="panel-note">Refreshed {{ refreshed_at }}</p>
+        </div>
+      </header>
+
+      <section class="stats-grid">
+        <article class="stat-card">
+          <span>Total Services</span>
+          <strong>{{ summary.total }}</strong>
+        </article>
+        <article class="stat-card accent">
+          <span>In Progress</span>
+          <strong>{{ summary.in_progress }}</strong>
+        </article>
+        <article class="stat-card warning">
+          <span>Blocked</span>
+          <strong>{{ summary.blocked }}</strong>
+        </article>
+        <article class="stat-card success">
+          <span>Healthy / Done</span>
+          <strong>{{ summary.healthy + summary.done }}</strong>
+        </article>
+      </section>
+
+      <section class="stage-strip">
+        {% for stage in stage_totals %}
+        <article class="stage-card">
+          <span>{{ stage.name }}</span>
+          <strong>{{ stage.count }}</strong>
+        </article>
+        {% endfor %}
+      </section>
+
+      <section class="control-grid">
+        <article class="card">
+          <div class="card-heading">
+            <h2>Add Work Item</h2>
+            <p>Track a service, deployment stream, or release train.</p>
+          </div>
+          <form class="stack-form" method="post" action="{{ url_for('add_item') }}">
+            <div class="form-grid">
+              <label>
+                <span>Service name</span>
+                <input type="text" name="service_name" placeholder="catalog-api" required>
+              </label>
+              <label>
+                <span>Environment</span>
+                <input type="text" name="environment" placeholder="staging" required>
+              </label>
+              <label>
+                <span>Owner</span>
+                <input type="text" name="owner" placeholder="ahmed">
+              </label>
+              <label>
+                <span>Reference URL</span>
+                <input type="url" name="reference_url" placeholder="http://localhost:8080/job/catalog-api/">
+              </label>
+              <label>
+                <span>Starting stage</span>
+                <select name="stage">
+                  {% for stage in stage_flow %}
+                  <option value="{{ stage }}">{{ stage }}</option>
+                  {% endfor %}
+                </select>
+              </label>
+              <label>
+                <span>Status</span>
+                <select name="status">
+                  {% for status in status_options %}
+                  <option value="{{ status }}">{{ status }}</option>
+                  {% endfor %}
+                </select>
+              </label>
+            </div>
+            <label>
+              <span>Notes</span>
+              <textarea name="notes" rows="4" placeholder="What is happening right now?"></textarea>
+            </label>
+            <button class="action-button" type="submit">Add to board</button>
+          </form>
+        </article>
+
+        <article class="card">
+          <div class="card-heading">
+            <h2>Filter Board</h2>
+            <p>Focus the list without changing the saved data.</p>
+          </div>
+          <form class="stack-form" method="get" action="{{ url_for('index') }}">
+            <div class="form-grid compact">
+              <label>
+                <span>Environment</span>
+                <select name="environment">
+                  <option value="">All</option>
+                  {% for environment in environments %}
+                  <option value="{{ environment }}" {% if filters.environment == environment %}selected{% endif %}>{{ environment }}</option>
+                  {% endfor %}
+                </select>
+              </label>
+              <label>
+                <span>Stage</span>
+                <select name="stage">
+                  <option value="">All</option>
+                  {% for stage in stage_flow %}
+                  <option value="{{ stage }}" {% if filters.stage == stage %}selected{% endif %}>{{ stage }}</option>
+                  {% endfor %}
+                </select>
+              </label>
+              <label>
+                <span>Status</span>
+                <select name="status">
+                  <option value="">All</option>
+                  {% for status in status_options %}
+                  <option value="{{ status }}" {% if filters.status == status %}selected{% endif %}>{{ status }}</option>
+                  {% endfor %}
+                </select>
+              </label>
+            </div>
+            <div class="inline-actions">
+              <button class="action-button" type="submit">Apply filters</button>
+              <a class="text-link" href="{{ url_for('index') }}">Reset view</a>
+            </div>
+          </form>
+
+          <div class="callout">
+            <h3>Useful endpoints</h3>
+            <p><code>{{ url_for('healthz', _external=False) }}</code> for a lightweight health check.</p>
+            <p><code>{{ url_for('api_items', _external=False) }}</code> for dashboards or scripts.</p>
+          </div>
+        </article>
+      </section>
+
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <section class="message-stack">
+          {% for category, message in messages %}
+          <div class="message {{ category }}">{{ message }}</div>
+          {% endfor %}
+        </section>
+        {% endif %}
+      {% endwith %}
+
+      <section class="board-heading">
+        <div>
+          <h2>Tracked Work</h2>
+          <p>{{ items|length }} visible item{% if items|length != 1 %}s{% endif %} on the current board view.</p>
+        </div>
+      </section>
+
+      <section class="board-grid">
+        {% for item in items %}
+        <article class="work-card">
+          <div class="work-card-top">
+            <div>
+              <p class="service-name">{{ item.service_name }}</p>
+              <p class="meta-line">{{ item.environment }} · owned by {{ item.owner or "unassigned" }}</p>
+            </div>
+            <div class="badge-group">
+              <span class="badge badge-stage">{{ item.stage }}</span>
+              <span class="badge badge-status {{ item.status|lower|replace(' ', '-') }}">{{ item.status }}</span>
+            </div>
+          </div>
+
+          <p class="notes">{{ item.notes or "No notes yet. Use this area to keep deployment context close to the work item." }}</p>
+
+          {% if item.reference_url %}
+          <p class="reference-link">
+            <a href="{{ item.reference_url }}" target="_blank" rel="noreferrer">Open reference</a>
+          </p>
+          {% endif %}
+
+          <p class="meta-line">Updated {{ item.updated_at }}</p>
+
+          <div class="card-actions">
+            <form method="post" action="{{ url_for('advance_item', item_id=item.id) }}">
+              <button class="action-button" type="submit">Advance stage</button>
+            </form>
+
+            <form class="status-form" method="post" action="{{ url_for('update_item_status', item_id=item.id) }}">
+              <select name="status" aria-label="Change status for {{ item.service_name }}">
+                {% for status in status_options %}
+                <option value="{{ status }}" {% if item.status == status %}selected{% endif %}>{{ status }}</option>
+                {% endfor %}
+              </select>
+              <button class="secondary-button" type="submit">Save</button>
+            </form>
+
+            <form method="post" action="{{ url_for('remove_item', item_id=item.id) }}">
+              <button class="ghost-button" type="submit">Remove</button>
+            </form>
+          </div>
+        </article>
+        {% else %}
+        <article class="empty-state">
+          <h3>No services match the current view.</h3>
+          <p>Add a service above or reset the filters to bring your board back into focus.</p>
+        </article>
+        {% endfor %}
+      </section>
+    </div>
+  </body>
+</html>
