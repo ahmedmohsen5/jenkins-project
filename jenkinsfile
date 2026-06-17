@@ -16,8 +16,8 @@ pipeline {
         stage('push') {
             steps {
                 echo 'Pushing...'
-                sh 'docker tag my-app:latest docker-repository:8000/my-app:latest'
-                sh 'docker push docker-repository:8000/my-app:latest'
+                sh 'docker tag my-app:latest docker-repository:5000/my-app:latest'
+                sh 'docker push docker-repository:5000/my-app:latest'
             }
         }
     }
