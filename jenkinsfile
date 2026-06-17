@@ -5,7 +5,6 @@ pipeline {
     parameters {
         string(name: 'VERSION', defaultValue: 'latest', description: 'Version to build')
         choice(name: 'ENVIRONMENT', choices: ['dev', 'staging', 'prod'], description: 'Deployment environment')
-        number(name: 'REPLICAS', defaultValue: 1, description: 'Number of replicas to deploy')
     }
     environment {
         DOCKER_HOST = 'tcp://jenkins-docker:2375'
