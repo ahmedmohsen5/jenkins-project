@@ -13,6 +13,13 @@ pipeline {
                 sh 'docker build -t my-app:latest devops-helper'
             }
         }
+        stage('push') {
+            steps {
+                echo 'Pushing...'
+                sh 'docker tag my-app:latest docker-repository:8000/my-app:latest'
+                sh 'docker push docker-repository:8000/my-app:latest'
+            }
+        }
     }
 }
 
