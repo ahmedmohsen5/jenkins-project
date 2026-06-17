@@ -2,22 +2,41 @@ pipeline {
     agent {
         label 'agent1'
     }
+    parameters {
+        string(name: 'VERSION', defaultValue: 'latest', description: 'Version to build')
+        choice(name: 'ENVIRONMENT', choices: ['dev', 'staging', 'prod'], description: 'Deployment environment')
+        number(name: 'REPLICAS', defaultValue: 1, description: 'Number of replicas to deploy')
+    }
     environment {
         DOCKER_HOST = 'tcp://jenkins-docker:2375'
     }
 
     stages {
+        stage('Checkout') {
+            steps {
+                echo 'Checking out...'
+                checkout scm
+            }
+        }
+        stage('login') {
+            steps {
+                echo 'Logging in...'
+                withCredentials([usernamePassword(credentialsId: 'nexus-credentials', usernameVariable: 'NEXUS_USER', passwordVariable: 'NEXUS_PASS')]) {
+                    sh 'docker login -u $NEXUS_USER -p $NEXUS_PASS nexus:5000'
+                }
+            }
+        }
         stage('Build') {
             steps {
                 echo 'Building...'
-                sh 'docker build -t my-app:latest devops-helper'
+                sh 'docker build -t my-app:${VERSION} devops-helper'
             }
         }
         stage('push') {
             steps {
                 echo 'Pushing...'
-                sh 'docker tag my-app:latest docker-repository:5000/my-app:latest'
-                sh 'docker push docker-repository:5000/my-app:latest'
+                sh 'docker tag my-app:${VERSION} nexus:5000/my-app:${VERSION}'
+                sh 'docker push nexus:5000/my-app:${VERSION}'
             }
         }
     }

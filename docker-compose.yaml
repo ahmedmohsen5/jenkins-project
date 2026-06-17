@@ -50,6 +50,10 @@ services:
     privileged: true
     environment:
       DOCKER_TLS_CERTDIR: ""
+    command:
+      - --host=tcp://0.0.0.0:2375
+      - --host=unix:///var/run/docker.sock
+      - --insecure-registry=nexus:5000
     volumes:
       - docker_data:/var/lib/docker
     networks:
@@ -64,9 +68,20 @@ services:
       - docker_repository_data:/var/lib/registry
     networks:
       - jenkins-net
+  nexus:
+    image: sonatype/nexus3:latest
+    container_name: nexus
+    restart: unless-stopped
+    ports:
+      - "8081:8081"
+    volumes:
+      - nexus-data:/nexus-data
+    networks:
+      - jenkins-net
 
 volumes:
   jenkins_home:
+  nexus-data:
   docker_repository_data:
   docker_data:
   devops_helper_data:
