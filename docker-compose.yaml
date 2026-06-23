@@ -20,26 +20,12 @@ services:
     environment:
       JENKINS_AGENT_SSH_PUBKEY: "${JENKINS_AGENT_SSH_PUBKEY:-}"
       DOCKER_HOST: "tcp://jenkins-docker:2375"
+      DOCKER_TLS_CERTDIR: ""
+      KUBECONFIG: "/home/jenkins/.kube/config"
     depends_on:
       - docker
-    networks:
-      - jenkins-net
-
-  devops-helper:
-    build:
-      context: ./devops-helper
-    container_name: devops-helper
-    restart: unless-stopped
-    environment:
-      SECRET_KEY: "${DEVOPS_HELPER_SECRET_KEY:-devops-helper-local-secret}"
-      DATABASE_PATH: /data/devops-helper.db
-      JENKINS_URL: http://jenkins-controller:8080
-    ports:
-      - "5050:5000"
     volumes:
-      - devops_helper_data:/data
-    depends_on:
-      - jenkins-controller
+      - "C:/scripts/projects/project2/jenkins-kube:/home/jenkins/.kube:ro"
     networks:
       - jenkins-net
 
@@ -56,16 +42,6 @@ services:
       - --insecure-registry=nexus:5000
     volumes:
       - docker_data:/var/lib/docker
-    networks:
-      - jenkins-net
-  docker-repository:
-    image: registry:2
-    container_name: docker-repository
-    restart: unless-stopped
-    ports:
-      - "8000:5000"
-    volumes:
-      - docker_repository_data:/var/lib/registry
     networks:
       - jenkins-net
   nexus:

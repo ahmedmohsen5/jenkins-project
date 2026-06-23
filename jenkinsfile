@@ -38,6 +38,13 @@ pipeline {
                 sh 'docker push nexus:5000/my-app:${VERSION}'
             }
         }
+        stage('Deploy') {
+            steps {
+                echo 'Deploying...'
+                sh "kubectl set image deployment/my-app my-app=nexus:5000/my-app:${VERSION} -n ${ENVIRONMENT}"
+            }
+        }
+        
     }
 }
 
