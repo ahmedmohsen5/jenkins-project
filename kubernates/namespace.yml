@@ -19,7 +19,7 @@ spec:
     spec:
       containers:
       - name: test-image
-        image: nexus:5000/my-app:${VERSION} 
+        image: nexus:5000/my-app:latest
         resources:
           limits:
             memory: "128Mi"
